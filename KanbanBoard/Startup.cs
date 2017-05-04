@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using KanbanBoard.Data;
 using KanbanBoard.Models;
 using KanbanBoard.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 
 namespace KanbanBoard
 {
@@ -43,7 +45,14 @@ namespace KanbanBoard
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+            services.AddIdentity<ApplicationUser, IdentityRole>(o => {
+                o.Password.RequireDigit = false;
+                o.Password.RequiredLength = 6;
+                o.Password.RequireLowercase = false;
+                o.Password.RequireNonAlphanumeric = false;
+                o.Password.RequireUppercase = false; 
+
+            })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
@@ -53,6 +62,9 @@ namespace KanbanBoard
             services.AddTransient<IEmailSender, AuthMessageSender>();
             services.AddTransient<ISmsSender, AuthMessageSender>();
             services.Configure<SMSoption>(Configuration);
+
+            
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -84,6 +96,10 @@ namespace KanbanBoard
 
             // Add external authentication middleware below. To configure them please see https://go.microsoft.com/fwlink/?LinkID=532715
 
+            var serviceProvider = app.ApplicationServices.GetService<IServiceProvider>();
+
+            CreateRoles(serviceProvider).Wait(); 
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
@@ -91,5 +107,37 @@ namespace KanbanBoard
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
         }
+
+
+        private async Task CreateRoles(IServiceProvider serviceProvider)
+        {
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            string[] roleNames = { "Admin", "Organizer", "Team player", "Contributer", "Observer" };
+
+            IdentityResult roleResult; 
+
+            foreach(var roleName in roleNames)
+            {
+                var roleExist = await roleManager.RoleExistsAsync(roleName); 
+
+                if (roleExist != true)
+                {
+                    roleResult = await roleManager.CreateAsync(new IdentityRole(roleName)); 
+                }
+
+            }
+
+            var adminUser = await userManager.FindByEmailAsync("admin@admin.dk"); 
+
+            if (adminUser != null)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin"); 
+            }
+
+
+        }
+
     }
 }

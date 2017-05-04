@@ -1,0 +1,41 @@
+﻿@model KanbanBoard.Models.AdminViewModels.IndexViewModel
+@{ 
+    ViewData["Title"] = "AdminPage";
+
+}
+
+<h2>@ViewData["Title"]</h2>
+<p>@ViewData["ResultMessage"]</p>
+<hr />
+
+<p>Create a new role: </p>
+<br />
+
+<form asp-area="" asp-controller="Admin" asp-action="CreateRole">
+    <div class="form-group">
+        <label asp-for="RoleName">Rolename:</label>
+        <input asp-for="RoleName" type="text" class="form-control" id="usr">
+    </div>
+    <div class="form-group">
+        <input type="submit" class="btn btn-info" value="Create new role" />
+    </div>
+</form>
+
+<br />
+<hr />
+
+<h3>All roles: </h3>
+
+@foreach(var r in Model.Roles)
+{
+    <form asp-controller="Admin" asp-action="DeleteRole">
+        <p>@r.Name</p>
+        <input type="hidden" name="name" asp-for="@r.Name" />
+        <input class="btn btn-danger" type="submit" value="Delete role" />
+    </form>
+    <br />
+    <br />
+   
+    
+
+}
